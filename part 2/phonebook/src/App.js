@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState,useEffect } from 'react'
+import axios from 'axios';
 import Filter from './components/Filter';
 import Form from './components/Form';
 import Persons from './components/Persons';
@@ -11,6 +12,16 @@ const App = () => {
 // store data when filtering
   const [filter, setFilter] = useState({ name: "" });
 
+  useEffect(() => {
+    axios
+      .get('http://localhost:3001/persons')
+      .then(response => { 
+        console.log(response.data)
+        setPersons(response.data)
+        setRender(response.data)
+      })
+  }, [])
+  
   const handleSubmit = (newName) => {
     if (persons.some(person => person.name === newName.name)) {
       alert(`${newName.name} is already added to the phonebook`);
