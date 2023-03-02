@@ -1,8 +1,9 @@
 import { useState,useEffect } from 'react'
-import axios from 'axios';
 import Filter from './components/Filter';
 import Form from './components/Form';
 import Persons from './components/Persons';
+import Phonebook from './services/Phonebook';
+import phonebook from './services/Phonebook';
 
 const App = () => {
 //  store data when adding new person
@@ -13,22 +14,30 @@ const App = () => {
   const [filter, setFilter] = useState({ name: "" });
 
   useEffect(() => {
-    axios
-      .get('http://localhost:3001/persons')
-      .then(response => { 
-        console.log(response.data)
-        setPersons(response.data)
-        setRender(response.data)
-      })
+    phonebook.getAll().then(response => {
+      setPersons(response);
+      setRender(response);
+    });
   }, [])
   
   const handleSubmit = (newName) => {
     if (persons.some(person => person.name === newName.name)) {
-      alert(`${newName.name} is already added to the phonebook`);
+      if (window.confirm(`${newName.name} is already added to the phonebook, replace the old number with a new one?`)) { 
+        const id = persons.find(person => person.name === newName.name).id;
+        phonebook.update(id, newName).then(response => { 
+          const data = persons.filter(person => person.id !== id);
+          setPersons(data.concat(response));
+          setRender(data.concat(response));
+          
+        });
+      }
       return;
     }
-    setPersons(persons.concat({name:newName.name,number:newName.number}));
-    setRender(persons.concat({name:newName.name,number:newName.number}));
+    Phonebook.create(newName).then(response => {
+      setPersons(persons.concat(response));
+      setRender(persons.concat(response));
+      console.log(response);
+    })
     console.log("after add render ",render);
   };
 
@@ -37,6 +46,19 @@ const App = () => {
     const filterResult = persons.filter(person => person.name.toLowerCase().includes(event.target.value.toLowerCase()));
     filterResult.length === 0 ? setRender(persons) : setRender(filterResult);
     console.log("Filter Results",filterResult);
+  }
+
+  const handleDelete = (id) => {
+    console.log(id);
+    const name = persons.find(person => person.id === id).name;
+    if (window.confirm(`Delete ${name} ?`)) {
+      phonebook.deletePerson(id)
+        .then(res => {
+          const data = (render.filter(ren => ren.id !== id))
+          setPersons(data)
+          setRender(data)
+        })
+    }
   }
 
   return (
@@ -48,7 +70,7 @@ const App = () => {
       <Form handleAddPerson={handleSubmit}  />
 
       <h2>Numbers</h2>
-      <Persons render={render} />
+      <Persons render={render} handleDelete={handleDelete} />
       
     </div>
   );
